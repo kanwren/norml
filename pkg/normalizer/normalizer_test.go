@@ -8,7 +8,7 @@ import (
 	"strings"
 	"testing"
 
-	"sigs.k8s.io/yaml"
+	"go.yaml.in/yaml/v2"
 )
 
 func TestNormalizeFile(t *testing.T) {
@@ -444,31 +444,31 @@ object:
 	}
 
 	if str, ok := result["string"].(string); !ok || str != "hello" {
-		t.Errorf("String value not preserved: %v", result["string"])
+		t.Errorf("String value not preserved: %v %v", reflect.TypeOf(result["string"]), result["string"])
 	}
 
-	if num, ok := result["integer"].(float64); !ok || num != 42 {
-		t.Errorf("Integer value not preserved: %v", result["integer"])
+	if num, ok := result["integer"].(int); !ok || num != 42 {
+		t.Errorf("Integer value not preserved: %v %v", reflect.TypeOf(result["integer"]), result["integer"])
 	}
 
 	if num, ok := result["float"].(float64); !ok || num != 3.14 {
-		t.Errorf("Float value not preserved: %v", result["float"])
+		t.Errorf("Float value not preserved: %v %v", reflect.TypeOf(result["float"]), result["float"])
 	}
 
 	if b, ok := result["boolean"].(bool); !ok || !b {
-		t.Errorf("Boolean value not preserved: %v", result["boolean"])
+		t.Errorf("Boolean value not preserved: %v %v", reflect.TypeOf(result["boolean"]), result["boolean"])
 	}
 
 	if result["null_value"] != nil {
-		t.Errorf("Null value not preserved: %v", result["null_value"])
+		t.Errorf("Null value not preserved: %v %v", reflect.TypeOf(result["null_value"]), result["null_value"])
 	}
 
 	if arr, ok := result["array"].([]any); !ok || len(arr) != 3 {
-		t.Errorf("Array not preserved: %v", result["array"])
+		t.Errorf("Array not preserved: %v %v", reflect.TypeOf(result["array"]), result["array"])
 	}
 
-	if obj, ok := result["object"].(map[string]any); !ok || obj["nested"] != "value" {
-		t.Errorf("Object not preserved: %v", result["object"])
+	if obj, ok := result["object"].(map[any]any); !ok || obj["nested"] != "value" {
+		t.Errorf("Object not preserved: %v %v", reflect.TypeOf(result["object"]), result["object"])
 	}
 }
 
