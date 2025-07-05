@@ -6,7 +6,7 @@ import (
 	"io"
 	"os"
 
-	"sigs.k8s.io/yaml"
+	"go.yaml.in/yaml/v2"
 )
 
 func Normalize(r io.Reader, w io.Writer) error {
