@@ -25,6 +25,7 @@
 
         devShells.default = pkgs.mkShell {
           packages = with pkgs; [
+            pre-commit
             go
             go-tools
             goreleaser
