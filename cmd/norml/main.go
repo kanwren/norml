@@ -3,6 +3,7 @@ package main
 import (
 	"bytes"
 	"context"
+	"errors"
 	"flag"
 	"fmt"
 	"io"
@@ -148,10 +149,23 @@ func normalizeTo(ctx context.Context, logger *log.Logger, w io.Writer, files []s
 	return reader.Wait()
 }
 
+type errWithExitCode struct {
+	Code int
+	Err  error
+}
+
+func (e *errWithExitCode) Error() string {
+	return e.Err.Error()
+}
+
+func (e *errWithExitCode) Unwrap() error {
+	return e.Err
+}
+
 func run(ctx context.Context, logger *log.Logger, stdin io.Reader, stdout io.Writer, args []string) error {
 	cmd := &normalizeCmd{}
 
-	flags := flag.NewFlagSet("norml", flag.ExitOnError)
+	flags := flag.NewFlagSet("norml", flag.ContinueOnError)
 
 	numCPU := runtime.NumCPU()
 
@@ -161,7 +175,13 @@ func run(ctx context.Context, logger *log.Logger, stdin io.Reader, stdout io.Wri
 	flags.BoolVar(&cmd.Version, "version", false, "Print version and exit")
 
 	if err := flags.Parse(args); err != nil {
-		return fmt.Errorf("failed to parse flags: %w", err)
+		if errors.Is(err, flag.ErrHelp) {
+			return nil
+		}
+		return &errWithExitCode{
+			Code: 2,
+			Err:  fmt.Errorf("failed to parse flags: %w", err),
+		}
 	}
 	cmd.Files = flags.Args()
 
@@ -198,6 +218,9 @@ func main() {
 
 	if err := run(ctx, logger, os.Stdin, os.Stdout, os.Args[1:]); err != nil {
 		fmt.Fprintf(os.Stderr, "error: %v\n", err)
+		if status, ok := err.(*errWithExitCode); ok {
+			os.Exit(status.Code)
+		}
 		os.Exit(1)
 	}
 }

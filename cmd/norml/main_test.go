@@ -3,6 +3,7 @@ package main
 import (
 	"bytes"
 	"context"
+	"errors"
 	"fmt"
 	"io"
 	"log"
@@ -385,7 +386,7 @@ func TestRun_ErrorInvalidYAML(t *testing.T) {
 	}
 }
 
-func TestRun_ErrorInvalidFlags(t *testing.T) {
+func TestRun_WorkerCountValidation(t *testing.T) {
 	t.Parallel()
 
 	logger := discardLogger()
@@ -400,6 +401,74 @@ func TestRun_ErrorInvalidFlags(t *testing.T) {
 
 	if err := run(ctx, logger, stdin, &stdout, []string{"-j", "-1"}); err != nil {
 		t.Errorf("negative worker count should be handled gracefully, got: %v", err)
+	}
+}
+
+func TestRun_HelpFlag(t *testing.T) {
+	t.Parallel()
+
+	logger := discardLogger()
+	ctx := t.Context()
+
+	stdin := strings.NewReader("")
+	var stdout bytes.Buffer
+
+	if err := run(ctx, logger, stdin, &stdout, []string{"-h"}); err != nil {
+		t.Errorf("help flag should not return error, got: %v", err)
+	}
+
+	stdout.Reset()
+	if err := run(ctx, logger, stdin, &stdout, []string{"--help"}); err != nil {
+		t.Errorf("help flag should not return error, got: %v", err)
+	}
+}
+
+func TestRun_InvalidFlagSyntax(t *testing.T) {
+	t.Parallel()
+
+	const flagErrCode = 2
+
+	logger := discardLogger()
+	ctx := t.Context()
+
+	testCases := []struct {
+		name string
+		args []string
+	}{
+		{
+			name: "unknown flag",
+			args: []string{"-unknown"},
+		},
+		{
+			name: "invalid flag format",
+			args: []string{"-j", "invalid"},
+		},
+		{
+			name: "missing flag argument",
+			args: []string{"-j"},
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+
+			stdin := strings.NewReader("")
+			var stdout bytes.Buffer
+
+			err := run(ctx, logger, stdin, &stdout, tc.args)
+			if err == nil {
+				t.Error("expected error for invalid flag syntax, but got none")
+			}
+
+			var exitErr *errWithExitCode
+			if !errors.As(err, &exitErr) {
+				t.Errorf("expected errWithExitCode, got %T: %v", err, err)
+			}
+			if exitErr.Code != flagErrCode {
+				t.Errorf("expected exit code %d, got %d", flagErrCode, exitErr.Code)
+			}
+		})
 	}
 }
 
