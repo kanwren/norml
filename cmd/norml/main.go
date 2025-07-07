@@ -17,14 +17,15 @@ import (
 )
 
 type normalizeCmd struct {
-	InPlace bool
-	Files   []string
-	Workers int
-	Verbose bool
-	Version bool
+	InPlace          bool
+	Files            []string
+	Workers          int
+	Verbose          bool
+	Version          bool
+	PreserveComments bool
 }
 
-func normalizeInPlace(ctx context.Context, logger *log.Logger, files []string, numWorkers int) error {
+func normalizeInPlace(ctx context.Context, logger *log.Logger, files []string, numWorkers int, preserveComments bool) error {
 	g, egCtx := errgroup.WithContext(ctx)
 
 	filesChan := make(chan string, len(files))
@@ -37,7 +38,7 @@ func normalizeInPlace(ctx context.Context, logger *log.Logger, files []string, n
 				}
 
 				logger.Printf("normalizing file: %s", filename)
-				if err := normalizer.NormalizeFile(filename); err != nil {
+				if err := normalizer.NormalizeFile(filename, preserveComments); err != nil {
 					return fmt.Errorf("failed to normalize file %s: %w", filename, err)
 				}
 			}
@@ -64,7 +65,7 @@ type fileResult struct {
 	index    int
 }
 
-func normalizeTo(ctx context.Context, logger *log.Logger, w io.Writer, files []string, numWorkers int) error {
+func normalizeTo(ctx context.Context, logger *log.Logger, w io.Writer, files []string, numWorkers int, preserveComments bool) error {
 	filesChan := make(chan fileInfo, len(files))
 	resultsChan := make(chan fileResult, len(files))
 
@@ -87,7 +88,7 @@ func normalizeTo(ctx context.Context, logger *log.Logger, w io.Writer, files []s
 				}
 
 				buf := new(bytes.Buffer)
-				err = normalizer.Normalize(file, buf)
+				err = normalizer.Normalize(file, buf, preserveComments)
 				file.Close()
 				if err != nil {
 					return fmt.Errorf("failed to normalize file %s: %w", filename, err)
@@ -173,6 +174,7 @@ func run(ctx context.Context, logger *log.Logger, stdin io.Reader, stdout io.Wri
 	flags.IntVar(&cmd.Workers, "j", numCPU, "Number of parallel workers (default: number of CPUs)")
 	flags.BoolVar(&cmd.Verbose, "v", false, "Verbose output")
 	flags.BoolVar(&cmd.Version, "version", false, "Print version and exit")
+	flags.BoolVar(&cmd.PreserveComments, "c", false, "Preserve comments")
 
 	if err := flags.Parse(args); err != nil {
 		if errors.Is(err, flag.ErrHelp) {
@@ -202,12 +204,12 @@ func run(ctx context.Context, logger *log.Logger, stdin io.Reader, stdout io.Wri
 
 	if len(cmd.Files) == 0 {
 		logger.Println("No files specified, reading from stdin")
-		return normalizer.Normalize(stdin, stdout)
+		return normalizer.Normalize(stdin, stdout, cmd.PreserveComments)
 	}
 	if cmd.InPlace {
-		return normalizeInPlace(ctx, logger, cmd.Files, cmd.Workers)
+		return normalizeInPlace(ctx, logger, cmd.Files, cmd.Workers, cmd.PreserveComments)
 	} else {
-		return normalizeTo(ctx, logger, stdout, cmd.Files, cmd.Workers)
+		return normalizeTo(ctx, logger, stdout, cmd.Files, cmd.Workers, cmd.PreserveComments)
 	}
 }
 

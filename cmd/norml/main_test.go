@@ -72,7 +72,7 @@ metadata:
 		{
 			name:     "empty input",
 			input:    "",
-			expected: "null\n",
+			expected: "",
 		},
 	}
 
@@ -587,7 +587,7 @@ func TestNormalizeTo_EmptyResultsChannel(t *testing.T) {
 	logger := discardLogger()
 
 	var output bytes.Buffer
-	if err := normalizeTo(t.Context(), logger, &output, []string{filename}, 1); err != nil {
+	if err := normalizeTo(t.Context(), logger, &output, []string{filename}, 1, true); err != nil {
 		t.Errorf("expected no error, got: %v", err)
 	}
 
@@ -619,7 +619,7 @@ key2: value2
 
 	logger := discardLogger()
 
-	if err := normalizeInPlace(t.Context(), logger, []string{filename}, 1); err != nil {
+	if err := normalizeInPlace(t.Context(), logger, []string{filename}, 1, true); err != nil {
 		t.Errorf("expected no error, got: %v", err)
 	}
 
@@ -664,7 +664,7 @@ key4: value4
 
 	logger := discardLogger()
 
-	if err := normalizeInPlace(t.Context(), logger, []string{file1, file2}, 2); err != nil {
+	if err := normalizeInPlace(t.Context(), logger, []string{file1, file2}, 2, true); err != nil {
 		t.Errorf("expected no error, got: %v", err)
 	}
 

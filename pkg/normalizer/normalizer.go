@@ -6,51 +6,68 @@ import (
 	"io"
 	"os"
 
-	"go.yaml.in/yaml/v2"
+	"go.yaml.in/yaml/v3"
 )
 
-func Normalize(r io.Reader, w io.Writer) error {
-	data, err := io.ReadAll(r)
-	if err != nil {
-		return fmt.Errorf("failed to read input: %w", err)
+func normalizeNode(node *yaml.Node, preserveComments bool) {
+	// Reset style
+	node.Style = 0
+
+	// Strip comments
+	if !preserveComments {
+		node.HeadComment = ""
+		node.LineComment = ""
+		node.FootComment = ""
 	}
 
-	var obj any
-	if err := yaml.Unmarshal(data, &obj); err != nil {
-		return fmt.Errorf("failed to parse YAML: %w", err)
+	// Normalize children
+	for _, node := range node.Content {
+		normalizeNode(node, preserveComments)
 	}
 
-	normalizedData, err := yaml.Marshal(obj)
-	if err != nil {
-		return fmt.Errorf("failed to marshal normalized YAML: %w", err)
+	if node.Kind == yaml.MappingNode {
+		node.Content = sortMapKeys(node.Content)
 	}
+}
 
-	if _, err := io.Copy(w, bytes.NewReader(normalizedData)); err != nil {
-		return fmt.Errorf("failed to write normalized YAML: %w", err)
+func Normalize(r io.Reader, w io.Writer, preserveComments bool) error {
+	dec := yaml.NewDecoder(r)
+	enc := yaml.NewEncoder(w)
+	enc.SetIndent(2)
+
+	for {
+		var node yaml.Node
+
+		err := dec.Decode(&node)
+		if err == io.EOF {
+			break
+		}
+		if err != nil {
+			return fmt.Errorf("failed to decode YAML input: %w", err)
+		}
+
+		normalizeNode(&node, preserveComments)
+
+		err = enc.Encode(&node)
+		if err != nil {
+			return fmt.Errorf("failed to encode normalized YAML: %w", err)
+		}
 	}
 
 	return nil
 }
 
-func NormalizeFile(filename string) error {
+func NormalizeFile(filename string, preserveComments bool) error {
 	data, err := os.ReadFile(filename)
 	if err != nil {
 		return fmt.Errorf("failed to read file: %w", err)
 	}
 
-	var obj any
-	if err := yaml.Unmarshal(data, &obj); err != nil {
-		return fmt.Errorf("failed to parse YAML: %w", err)
-	}
-
-	normalizedData, err := yaml.Marshal(obj)
+	outFile, err := os.OpenFile(filename, os.O_CREATE|os.O_TRUNC|os.O_WRONLY, 0644)
 	if err != nil {
-		return fmt.Errorf("failed to marshal normalized YAML: %w", err)
+		return fmt.Errorf("failed to open file for writing: %w", err)
 	}
+	defer outFile.Close()
 
-	if err := os.WriteFile(filename, normalizedData, 0644); err != nil {
-		return fmt.Errorf("failed to write normalized YAML: %w", err)
-	}
-
-	return nil
+	return Normalize(bytes.NewReader(data), outFile, preserveComments)
 }
