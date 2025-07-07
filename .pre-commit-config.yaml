@@ -1,0 +1,10 @@
+repos:
+- hooks:
+  - args:
+    - --allow-multiple-documents
+    id: check-yaml
+  - id: end-of-file-fixer
+  - id: trailing-whitespace
+  - id: check-merge-conflict
+  repo: https://github.com/pre-commit/pre-commit-hooks
+  rev: v4.4.0

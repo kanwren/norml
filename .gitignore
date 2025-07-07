@@ -1,0 +1,18 @@
+/norml
+
+# Go
+/bin/
+/vendor/
+/dist/
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+*.test
+*.out
+
+# Nix
+.direnv/
+result
+result-*
