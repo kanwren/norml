@@ -16,7 +16,7 @@
           pname = "norml";
           version = "0.0.1";
           src = ./.;
-          vendorHash = null;
+          vendorHash = "sha256-zwbOnOH71/QDjScypJiLOMZ/nOQROFqdXkcn8TxJHJg=";
         };
 
         apps.default = flake-utils.lib.mkApp {
