@@ -1,6 +1,7 @@
 package normalizer
 
 import (
+	"bufio"
 	"bytes"
 	"fmt"
 	"io"
@@ -35,6 +36,7 @@ func Normalize(r io.Reader, w io.Writer, preserveComments bool) error {
 	enc := yaml.NewEncoder(w)
 	enc.SetIndent(2)
 
+	wrote := false
 	for {
 		var node yaml.Node
 
@@ -52,22 +54,40 @@ func Normalize(r io.Reader, w io.Writer, preserveComments bool) error {
 		if err != nil {
 			return fmt.Errorf("failed to encode normalized YAML: %w", err)
 		}
+
+		wrote = true
 	}
 
-	return nil
+	var err error
+	if wrote {
+		err = enc.Close()
+	}
+	return err
 }
 
-func NormalizeFile(filename string, preserveComments bool) error {
+func NormalizeFile(filename string, preserveComments bool) (finalErr error) {
 	data, err := os.ReadFile(filename)
 	if err != nil {
 		return fmt.Errorf("failed to read file: %w", err)
 	}
+	r := bytes.NewReader(data)
 
 	outFile, err := os.OpenFile(filename, os.O_CREATE|os.O_TRUNC|os.O_WRONLY, 0644)
 	if err != nil {
 		return fmt.Errorf("failed to open file for writing: %w", err)
 	}
-	defer outFile.Close()
+	defer func() {
+		if err := outFile.Close(); finalErr == nil && err != nil {
+			finalErr = err
+		}
+	}()
 
-	return Normalize(bytes.NewReader(data), outFile, preserveComments)
+	w := bufio.NewWriter(outFile)
+	defer func() {
+		if err := w.Flush(); finalErr == nil && err != nil {
+			finalErr = err
+		}
+	}()
+
+	return Normalize(r, w, preserveComments)
 }
