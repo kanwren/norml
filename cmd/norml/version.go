@@ -8,8 +8,8 @@ import (
 const (
 	AppName         = "norml"
 	AppVersionMajor = 0
-	AppVersionMinor = 0
-	AppVersionPatch = 2
+	AppVersionMinor = 1
+	AppVersionPatch = 0
 	AppVersionBuild = ""
 )
 
