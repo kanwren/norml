@@ -9,7 +9,7 @@ const (
 	AppName         = "norml"
 	AppVersionMajor = 0
 	AppVersionMinor = 0
-	AppVersionPatch = 1
+	AppVersionPatch = 2
 	AppVersionBuild = ""
 )
 

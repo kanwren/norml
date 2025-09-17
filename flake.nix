@@ -14,9 +14,9 @@
       {
         packages.default = pkgs.buildGoModule {
           pname = "norml";
-          version = "0.0.1";
+          version = "0.0.2";
           src = ./.;
-          vendorHash = "sha256-zwbOnOH71/QDjScypJiLOMZ/nOQROFqdXkcn8TxJHJg=";
+          vendorHash = "sha256-X2qVf3/9WvWkS6HjGVw4Ns4WUhjPm539ve6qr8u2Ys0=";
         };
 
         apps.default = flake-utils.lib.mkApp {
