@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"path/filepath"
 
 	"go.yaml.in/yaml/v3"
 )
@@ -78,13 +79,61 @@ func Normalize(r io.Reader, w io.Writer, preserveComments bool) error {
 }
 
 func NormalizeFile(filename string, preserveComments bool) (finalErr error) {
+	fileInfo, err := os.Stat(filename)
+	if err != nil {
+		return fmt.Errorf("failed to stat file: %w", err)
+	}
+
+	if fileInfo.Mode()&0200 == 0 {
+		return fmt.Errorf("file to normalize is not writable: %s", filename)
+	}
+
+	// For small files (<1MiB), just read into memory; otherwise, stream to
+	// temporary file and atomically rename
+	const largeFileThreshold = 1 * 1024 * 1024
+	if fileInfo.Size() <= largeFileThreshold {
+		return normalizeFileSmall(filename, fileInfo.Mode(), preserveComments)
+	}
+	return normalizeFileLarge(filename, fileInfo.Mode(), preserveComments)
+}
+
+func normalizeFileLarge(filename string, mode os.FileMode, preserveComments bool) (finalErr error) {
+	tmpFile := filepath.Join(filepath.Dir(filename), ".tmp_"+filepath.Base(filename))
+
+	inFile, err := os.Open(filename)
+	if err != nil {
+		return fmt.Errorf("failed to read file: %w", err)
+	}
+	defer func() {
+		if err := inFile.Close(); finalErr == nil && err != nil {
+			finalErr = err
+		}
+	}()
+	r := bufio.NewReader(inFile)
+
+	err = normalizeToFile(r, tmpFile, mode, preserveComments)
+	if err != nil {
+		return err
+	}
+
+	err = os.Rename(tmpFile, filename)
+	if err != nil {
+		return fmt.Errorf("failed to replace original file: %w", err)
+	}
+
+	return nil
+}
+
+func normalizeFileSmall(filename string, mode os.FileMode, preserveComments bool) (finalErr error) {
 	data, err := os.ReadFile(filename)
 	if err != nil {
 		return fmt.Errorf("failed to read file: %w", err)
 	}
-	r := bytes.NewReader(data)
+	return normalizeToFile(bytes.NewReader(data), filename, mode, preserveComments)
+}
 
-	outFile, err := os.OpenFile(filename, os.O_CREATE|os.O_TRUNC|os.O_WRONLY, 0644)
+func normalizeToFile(r io.Reader, filename string, mode os.FileMode, preserveComments bool) (finalErr error) {
+	outFile, err := os.OpenFile(filename, os.O_CREATE|os.O_TRUNC|os.O_WRONLY, mode)
 	if err != nil {
 		return fmt.Errorf("failed to open file for writing: %w", err)
 	}
