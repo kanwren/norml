@@ -2,6 +2,7 @@ package normalizer
 
 import (
 	"bytes"
+	"errors"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -1280,7 +1281,7 @@ another: key
 
 				var buf bytes.Buffer
 				err = Normalize(file, &buf, true)
-				file.Close()
+				err = errors.Join(err, file.Close())
 
 				if tt.expectError {
 					if err == nil {

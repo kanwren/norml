@@ -89,9 +89,12 @@ func normalizeTo(ctx context.Context, logger *log.Logger, w io.Writer, files []s
 
 				buf := new(bytes.Buffer)
 				err = normalizer.Normalize(file, buf, preserveComments)
-				file.Close()
+				closeErr := file.Close()
 				if err != nil {
 					return fmt.Errorf("failed to normalize file %s: %w", filename, err)
+				}
+				if closeErr != nil {
+					return fmt.Errorf("failed to close output file %s: %w", filename, closeErr)
 				}
 
 				resultsChan <- fileResult{
@@ -198,7 +201,7 @@ func run(ctx context.Context, logger *log.Logger, stdin io.Reader, stdout io.Wri
 	}
 
 	if cmd.Version {
-		fmt.Fprintln(stdout, Version())
+		_, _ = fmt.Fprintln(stdout, Version())
 		return nil
 	}
 

@@ -10,7 +10,7 @@ import (
 	"go.yaml.in/yaml/v3"
 )
 
-func normalizeNode(node *yaml.Node, preserveComments bool) {
+func normalizeNode(node *yaml.Node, preserveComments bool) error {
 	// Reset style
 	node.Style = 0
 
@@ -23,12 +23,21 @@ func normalizeNode(node *yaml.Node, preserveComments bool) {
 
 	// Normalize children
 	for _, node := range node.Content {
-		normalizeNode(node, preserveComments)
+		err := normalizeNode(node, preserveComments)
+		if err != nil {
+			return err
+		}
 	}
 
 	if node.Kind == yaml.MappingNode {
-		node.Content = sortMapKeys(node.Content)
+		content, err := sortMapKeys(node.Content)
+		if err != nil {
+			return err
+		}
+		node.Content = content
 	}
+
+	return nil
 }
 
 func Normalize(r io.Reader, w io.Writer, preserveComments bool) error {
@@ -48,7 +57,10 @@ func Normalize(r io.Reader, w io.Writer, preserveComments bool) error {
 			return fmt.Errorf("failed to decode YAML input: %w", err)
 		}
 
-		normalizeNode(&node, preserveComments)
+		err = normalizeNode(&node, preserveComments)
+		if err != nil {
+			return fmt.Errorf("failed to normalize YAML node: %w", err)
+		}
 
 		err = enc.Encode(&node)
 		if err != nil {

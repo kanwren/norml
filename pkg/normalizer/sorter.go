@@ -10,7 +10,7 @@ import (
 	"go.yaml.in/yaml/v3"
 )
 
-func sortMapKeys(content []*yaml.Node) []*yaml.Node {
+func sortMapKeys(content []*yaml.Node) ([]*yaml.Node, error) {
 	entries := len(content) / 2
 
 	var keys mapKeys
@@ -19,7 +19,9 @@ func sortMapKeys(content []*yaml.Node) []*yaml.Node {
 		var key mapKey
 		key.index = i
 		var value any
-		n.Decode(&value)
+		if err := n.Decode(&value); err != nil {
+			return nil, err
+		}
 		key.value = reflect.ValueOf(value)
 		keys = append(keys, key)
 	}
@@ -30,7 +32,7 @@ func sortMapKeys(content []*yaml.Node) []*yaml.Node {
 		newContent[i*2] = content[keys[i].index*2]
 		newContent[i*2+1] = content[keys[i].index*2+1]
 	}
-	return newContent
+	return newContent, nil
 }
 
 type mapKeys []mapKey
