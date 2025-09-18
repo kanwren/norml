@@ -28,6 +28,7 @@
             pre-commit
             go
             go-tools
+            golangci-lint
             goreleaser
           ];
         };

@@ -15,10 +15,14 @@ fmt:
 .PHONY: lint
 lint:
 	pre-commit run --all-files
+	golangci-lint run ./...
 
 .PHONY: test
 test:
 	go test ./...
+
+.PHONY: check
+check: build test lint
 
 .PHONY: dist
 dist:
