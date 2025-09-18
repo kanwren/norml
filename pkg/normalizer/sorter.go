@@ -12,8 +12,11 @@ import (
 
 func sortMapKeys(content []*yaml.Node) ([]*yaml.Node, error) {
 	entries := len(content) / 2
+	if entries == 0 {
+		return content, nil
+	}
 
-	var keys mapKeys
+	keys := make(mapKeys, 0, entries)
 	for i := range entries {
 		n := content[i*2]
 		var key mapKey
