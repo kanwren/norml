@@ -12,6 +12,8 @@ import (
 	"strings"
 	"testing"
 	"time"
+
+	"github.com/kanwren/norml"
 )
 
 // discardLogger returns a logger that discards all output
@@ -22,7 +24,7 @@ func discardLogger() *log.Logger {
 func TestRun_Version(t *testing.T) {
 	t.Parallel()
 
-	version := Version()
+	version := norml.Version()
 
 	var logOutput bytes.Buffer
 	logger := log.New(&logOutput, "", 0)

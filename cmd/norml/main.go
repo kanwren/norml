@@ -13,6 +13,7 @@ import (
 
 	"golang.org/x/sync/errgroup"
 
+	"github.com/kanwren/norml"
 	"github.com/kanwren/norml/pkg/normalizer"
 )
 
@@ -201,7 +202,7 @@ func run(ctx context.Context, logger *log.Logger, stdin io.Reader, stdout io.Wri
 	}
 
 	if cmd.Version {
-		_, _ = fmt.Fprintln(stdout, Version())
+		_, _ = fmt.Fprintln(stdout, norml.Version())
 		return nil
 	}
 

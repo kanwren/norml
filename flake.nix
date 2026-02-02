@@ -6,15 +6,27 @@
     flake-utils.url = "github:numtide/flake-utils";
   };
 
-  outputs = { self, nixpkgs, flake-utils }:
-    flake-utils.lib.eachDefaultSystem (system:
+  outputs =
+    {
+      self,
+      nixpkgs,
+      flake-utils,
+    }:
+    flake-utils.lib.eachDefaultSystem (
+      system:
       let
         pkgs = import nixpkgs { inherit system; };
+        trimSpace =
+          x:
+          let
+            m = builtins.match "[ \t\r\n]*(.*[^ \t\r\n])[ \t\r\n]*" x;
+          in
+          if (m == null) then "" else builtins.head m;
       in
       {
         packages.default = pkgs.buildGoModule {
           pname = "norml";
-          version = "0.1.0";
+          version = trimSpace (builtins.readFile ./version);
           src = ./.;
           vendorHash = "sha256-X2qVf3/9WvWkS6HjGVw4Ns4WUhjPm539ve6qr8u2Ys0=";
         };
