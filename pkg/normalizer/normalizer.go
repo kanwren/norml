@@ -97,6 +97,13 @@ func NormalizeFile(filename string, preserveComments bool) (finalErr error) {
 	return normalizeFileLarge(filename, fileInfo.Mode(), preserveComments)
 }
 
+const (
+	// smallBufferSize is the default buffer size for small file I/O (4KB)
+	smallBufferSize = 4 * 1024
+	// largeBufferSize reduces system call overhead for large files (64KB)
+	largeBufferSize = 64 * 1024
+)
+
 func normalizeFileLarge(filename string, mode os.FileMode, preserveComments bool) (finalErr error) {
 	tmpFile := filepath.Join(filepath.Dir(filename), ".tmp_"+filepath.Base(filename))
 
@@ -109,9 +116,9 @@ func normalizeFileLarge(filename string, mode os.FileMode, preserveComments bool
 			finalErr = err
 		}
 	}()
-	r := bufio.NewReader(inFile)
+	r := bufio.NewReaderSize(inFile, largeBufferSize)
 
-	err = normalizeToFile(r, tmpFile, mode, preserveComments)
+	err = normalizeToFile(r, tmpFile, mode, largeBufferSize, preserveComments)
 	if err != nil {
 		return err
 	}
@@ -129,10 +136,10 @@ func normalizeFileSmall(filename string, mode os.FileMode, preserveComments bool
 	if err != nil {
 		return fmt.Errorf("failed to read file: %w", err)
 	}
-	return normalizeToFile(bytes.NewReader(data), filename, mode, preserveComments)
+	return normalizeToFile(bytes.NewReader(data), filename, mode, smallBufferSize, preserveComments)
 }
 
-func normalizeToFile(r io.Reader, filename string, mode os.FileMode, preserveComments bool) (finalErr error) {
+func normalizeToFile(r io.Reader, filename string, mode os.FileMode, bufferSize int, preserveComments bool) (finalErr error) {
 	outFile, err := os.OpenFile(filename, os.O_CREATE|os.O_TRUNC|os.O_WRONLY, mode)
 	if err != nil {
 		return fmt.Errorf("failed to open file for writing: %w", err)
@@ -143,7 +150,7 @@ func normalizeToFile(r io.Reader, filename string, mode os.FileMode, preserveCom
 		}
 	}()
 
-	w := bufio.NewWriter(outFile)
+	w := bufio.NewWriterSize(outFile, bufferSize)
 	defer func() {
 		if err := w.Flush(); finalErr == nil && err != nil {
 			finalErr = err
