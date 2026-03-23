@@ -167,10 +167,18 @@ func (e *errWithExitCode) Unwrap() error {
 	return e.Err
 }
 
-func run(ctx context.Context, logger *log.Logger, stdin io.Reader, stdout io.Writer, args []string) error {
+func run(
+	ctx context.Context,
+	logger *log.Logger,
+	stdin io.Reader,
+	stdout io.Writer,
+	stderr io.Writer,
+	args []string,
+) (err error) {
 	cmd := &normalizeCmd{}
 
 	flags := flag.NewFlagSet("norml", flag.ContinueOnError)
+	flags.SetOutput(stderr)
 
 	numCPU := runtime.NumCPU()
 
@@ -222,7 +230,7 @@ func main() {
 
 	logger := log.New(os.Stderr, "", log.LstdFlags)
 
-	if err := run(ctx, logger, os.Stdin, os.Stdout, os.Args[1:]); err != nil {
+	if err := run(ctx, logger, os.Stdin, os.Stdout, os.Stderr, os.Args[1:]); err != nil {
 		fmt.Fprintf(os.Stderr, "error: %v\n", err)
 		if status, ok := err.(*errWithExitCode); ok {
 			os.Exit(status.Code)

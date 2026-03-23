@@ -32,7 +32,7 @@ func TestRun_Version(t *testing.T) {
 	var stdout bytes.Buffer
 	stdin := strings.NewReader("")
 
-	if err := run(t.Context(), logger, stdin, &stdout, []string{"-version"}); err != nil {
+	if err := run(t.Context(), logger, stdin, &stdout, io.Discard, []string{"-version"}); err != nil {
 		t.Errorf("expected no error, got: %v", err)
 	}
 	output := stdout.String()
@@ -87,7 +87,7 @@ metadata:
 
 			logger := discardLogger()
 			ctx := t.Context()
-			if err := run(ctx, logger, stdin, &stdout, []string{}); err != nil {
+			if err := run(ctx, logger, stdin, &stdout, io.Discard, []string{}); err != nil {
 				t.Errorf("expected no error, got: %v", err)
 			}
 
@@ -130,7 +130,7 @@ metadata:
 
 	logger := discardLogger()
 	ctx := t.Context()
-	if err := run(ctx, logger, stdin, &stdout, []string{filename}); err != nil {
+	if err := run(ctx, logger, stdin, &stdout, io.Discard, []string{filename}); err != nil {
 		t.Errorf("expected no error, got: %v", err)
 	}
 
@@ -173,7 +173,7 @@ key4: value4
 
 	logger := discardLogger()
 	ctx := t.Context()
-	if err := run(ctx, logger, stdin, &stdout, []string{file1, file2}); err != nil {
+	if err := run(ctx, logger, stdin, &stdout, io.Discard, []string{file1, file2}); err != nil {
 		t.Errorf("expected no error, got: %v", err)
 	}
 
@@ -214,7 +214,7 @@ metadata:
 
 	logger := discardLogger()
 	ctx := t.Context()
-	if err := run(ctx, logger, stdin, &stdout, []string{"-i", filename}); err != nil {
+	if err := run(ctx, logger, stdin, &stdout, io.Discard, []string{"-i", filename}); err != nil {
 		t.Errorf("expected no error, got: %v", err)
 	}
 
@@ -262,7 +262,7 @@ key4: value4
 
 	logger := discardLogger()
 	ctx := t.Context()
-	if err := run(ctx, logger, stdin, &stdout, []string{"-i", file1, file2}); err != nil {
+	if err := run(ctx, logger, stdin, &stdout, io.Discard, []string{"-i", file1, file2}); err != nil {
 		t.Errorf("expected no error, got: %v", err)
 	}
 
@@ -303,7 +303,7 @@ func TestRun_VerboseMode(t *testing.T) {
 	var stdout bytes.Buffer
 
 	ctx := t.Context()
-	if err := run(ctx, logger, stdin, &stdout, []string{"-v", "-i", filename}); err != nil {
+	if err := run(ctx, logger, stdin, &stdout, io.Discard, []string{"-v", "-i", filename}); err != nil {
 		t.Errorf("expected no error, got: %v", err)
 	}
 
@@ -334,7 +334,7 @@ func TestRun_WorkersFlag(t *testing.T) {
 	var stdout bytes.Buffer
 
 	args := append([]string{"-j", "2", "-i"}, files...)
-	if err := run(ctx, logger, stdin, &stdout, args); err != nil {
+	if err := run(ctx, logger, stdin, &stdout, io.Discard, args); err != nil {
 		t.Errorf("expected no error, got: %v", err)
 	}
 
@@ -358,7 +358,7 @@ func TestRun_ErrorNonExistentFile(t *testing.T) {
 	stdin := strings.NewReader("")
 	var stdout bytes.Buffer
 
-	err := run(t.Context(), logger, stdin, &stdout, []string{"nonexistent.yaml"})
+	err := run(t.Context(), logger, stdin, &stdout, io.Discard, []string{"nonexistent.yaml"})
 	if err == nil {
 		t.Error("expected error for non-existent file, but got none")
 	}
@@ -383,7 +383,7 @@ func TestRun_ErrorInvalidYAML(t *testing.T) {
 	stdin := strings.NewReader("")
 	var stdout bytes.Buffer
 
-	if err := run(t.Context(), logger, stdin, &stdout, []string{filename}); err == nil {
+	if err := run(t.Context(), logger, stdin, &stdout, io.Discard, []string{filename}); err == nil {
 		t.Error("expected error for invalid YAML, but got none")
 	}
 }
@@ -397,11 +397,11 @@ func TestRun_WorkerCountValidation(t *testing.T) {
 	stdin := strings.NewReader("")
 	var stdout bytes.Buffer
 
-	if err := run(ctx, logger, stdin, &stdout, []string{"-j", "0"}); err != nil {
+	if err := run(ctx, logger, stdin, &stdout, io.Discard, []string{"-j", "0"}); err != nil {
 		t.Errorf("worker count of 0 should be handled gracefully, got: %v", err)
 	}
 
-	if err := run(ctx, logger, stdin, &stdout, []string{"-j", "-1"}); err != nil {
+	if err := run(ctx, logger, stdin, &stdout, io.Discard, []string{"-j", "-1"}); err != nil {
 		t.Errorf("negative worker count should be handled gracefully, got: %v", err)
 	}
 }
@@ -415,12 +415,12 @@ func TestRun_HelpFlag(t *testing.T) {
 	stdin := strings.NewReader("")
 	var stdout bytes.Buffer
 
-	if err := run(ctx, logger, stdin, &stdout, []string{"-h"}); err != nil {
+	if err := run(ctx, logger, stdin, &stdout, io.Discard, []string{"-h"}); err != nil {
 		t.Errorf("help flag should not return error, got: %v", err)
 	}
 
 	stdout.Reset()
-	if err := run(ctx, logger, stdin, &stdout, []string{"--help"}); err != nil {
+	if err := run(ctx, logger, stdin, &stdout, io.Discard, []string{"--help"}); err != nil {
 		t.Errorf("help flag should not return error, got: %v", err)
 	}
 }
@@ -458,7 +458,7 @@ func TestRun_InvalidFlagSyntax(t *testing.T) {
 			stdin := strings.NewReader("")
 			var stdout bytes.Buffer
 
-			err := run(ctx, logger, stdin, &stdout, tc.args)
+			err := run(ctx, logger, stdin, &stdout, io.Discard, tc.args)
 			if err == nil {
 				t.Error("expected error for invalid flag syntax, but got none")
 			}
@@ -506,7 +506,7 @@ nested:
 
 			start := time.Now()
 			args := append([]string{"-j", fmt.Sprintf("%d", workers), "-i"}, files...)
-			if err := run(t.Context(), logger, stdin, &stdout, args); err != nil {
+			if err := run(t.Context(), logger, stdin, &stdout, io.Discard, args); err != nil {
 				t.Errorf("expected no error with %d workers, got: %v", workers, err)
 			}
 			t.Logf("processing %d files with %d workers took %v", fileCount, workers, time.Since(start))
@@ -537,7 +537,7 @@ func TestRun_EmptyFileList(t *testing.T) {
 	stdin := strings.NewReader(input)
 	var stdout bytes.Buffer
 
-	if err := run(t.Context(), logger, stdin, &stdout, []string{}); err != nil {
+	if err := run(t.Context(), logger, stdin, &stdout, io.Discard, []string{}); err != nil {
 		t.Errorf("expected no error when reading from stdin, got: %v", err)
 	}
 
@@ -568,7 +568,7 @@ func TestRun_ContextCancellation(t *testing.T) {
 
 	ctx, cancel := context.WithCancel(t.Context())
 	cancel()
-	if err := run(ctx, logger, stdin, &stdout, []string{"-i", filename}); err != nil {
+	if err := run(ctx, logger, stdin, &stdout, io.Discard, []string{"-i", filename}); err != nil {
 		t.Logf("context cancellation resulted in error (expected): %v", err)
 	}
 }
