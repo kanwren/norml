@@ -2,48 +2,76 @@
   description = "A tool for normalizing YAML files";
 
   inputs = {
+    systems.url = "github:nix-systems/default";
     nixpkgs.url = "github:NixOS/nixpkgs/nixpkgs-unstable";
-    flake-utils.url = "github:numtide/flake-utils";
   };
 
   outputs =
+    { self, ... }@inputs:
+    let
+      systems = import inputs.systems;
+      pkgsEval = inputs.nixpkgs.lib.genAttrs systems (
+        system:
+        import inputs.nixpkgs {
+          inherit system;
+          overlays = [ self.overlays.default ];
+        }
+      );
+      eachSystem = f: builtins.mapAttrs f pkgsEval;
+    in
     {
-      self,
-      nixpkgs,
-      flake-utils,
-    }:
-    flake-utils.lib.eachDefaultSystem (
-      system:
-      let
-        pkgs = import nixpkgs { inherit system; };
-        trimSpace =
-          x:
-          let
-            m = builtins.match "[ \t\r\n]*(.*[^ \t\r\n])[ \t\r\n]*" x;
-          in
-          if (m == null) then "" else builtins.head m;
-      in
-      {
-        packages.default = pkgs.buildGoModule {
+      overlays.default = final: prev: {
+        norml = final.buildGoModule {
           pname = "norml";
-          version = trimSpace (builtins.readFile ./version);
+          version =
+            let
+              m = builtins.match "[ \t\r\n]*(.*[^ \t\r\n])[ \t\r\n]*" (builtins.readFile ./version);
+            in
+            if (m == null) then "" else builtins.head m;
           src = ./.;
-          vendorHash = "sha256-X2qVf3/9WvWkS6HjGVw4Ns4WUhjPm539ve6qr8u2Ys0=";
+          vendorHash = "sha256-JffM9G4m5tIPERZLKMKAHWssTtYqAafU3olcW+DNPss=";
+          meta = {
+            homepage = "https://github.com/kanwren/norml";
+            mainProgram = "norml";
+            description = "A tool for normalizing YAML files";
+            license = prev.lib.licenses.mit;
+          };
         };
+      };
 
-        apps.default = flake-utils.lib.mkApp {
-          drv = self.packages.${system}.default;
-        };
+      packages = eachSystem (
+        system: pkgs: {
+          default = self.packages.${system}.norml;
+          inherit (pkgs) norml;
+        }
+      );
 
-        devShells.default = pkgs.mkShell {
-          packages = with pkgs; [
-            pre-commit
-            go
-            go-tools
-            golangci-lint
-            goreleaser
-          ];
-        };
-      }
-    );
+      apps = eachSystem (
+        system: pkgs: {
+          default =
+            let
+              pkg = self.packages.${system}.default;
+            in
+            {
+              type = "app";
+              program = pkgs.lib.getExe pkg;
+              inherit (pkg) meta;
+            };
+        }
+      );
+
+      devShells = eachSystem (
+        _: pkgs: {
+          default = pkgs.mkShell {
+            packages = with pkgs; [
+              pre-commit
+              go
+              go-tools
+              golangci-lint
+              goreleaser
+            ];
+          };
+        }
+      );
+    };
 }
